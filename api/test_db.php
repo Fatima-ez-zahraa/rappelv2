@@ -49,12 +49,7 @@ try {
         $schemaPath = __DIR__ . '/../database/schema.mariadb.sql';
         if (file_exists($schemaPath)) {
             $sql = file_get_contents($schemaPath);
-            // Remove comments and split by semicolon (naive approach but usually works for dumps)
-            // Better to use strict SQL execution or just run the whole thing if PDO supports multiple queries (it does if emulation is on, or one by one)
-            
-            // Note: PDO might not support multiple queries in one exec depending on driver options.
-            // Let's try executing the whole block if possible, or split.
-            // Schema has specific delimiters? No, standard semicolons.
+
             
             try {
                 $db->exec($sql);

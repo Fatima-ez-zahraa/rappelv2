@@ -6,9 +6,29 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
 import { Logo } from '../components/ui/Logo';
-import { Check, ChevronRight, ChevronLeft, Building2, User, Hammer, CreditCard, ShieldCheck, ArrowLeft, Zap, Loader2 } from 'lucide-react';
+import { Check, ChevronRight, ChevronLeft, Building2, User, Hammer, ShieldCheck, ArrowLeft, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { api } from '../lib/api';
+
+// Default fallback legal forms - moved outside component to avoid recreation
+const DEFAULT_LEGAL_FORMS = [
+    { code: '5710', libelle: 'SAS' },
+    { code: '5720', libelle: 'SASU' },
+    { code: '5499', libelle: 'SARL' },
+    { code: '1000', libelle: 'EI' },
+    { code: '5485', libelle: 'SA' },
+    { code: '5305', libelle: 'EURL' },
+    { code: '5510', libelle: 'SCA' },
+    { code: '5530', libelle: 'SC' },
+    { code: '5545', libelle: 'SCP' },
+    { code: '6000', libelle: 'SCI' },
+    { code: '6110', libelle: 'SELARL' },
+    { code: '6120', libelle: 'SELAFA' },
+    { code: '6130', libelle: 'SELAS' },
+    { code: '5200', libelle: 'Micro-entreprise' },
+    { code: '4510', libelle: 'GIE' },
+    { code: '4540', libelle: 'GEIE' }
+];
 
 const steps = [
     { number: 1, title: 'Entreprise', icon: Building2 },
@@ -23,7 +43,7 @@ const ProviderSignupWizard = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [siretLoading, setSiretLoading] = useState(false);
-    const [legalForms, setLegalForms] = useState([]);
+    const [legalForms, setLegalForms] = useState(DEFAULT_LEGAL_FORMS);
     const [formData, setFormData] = useState({
         // Step 1
         siret: '', siren: '', companyName: '', legalForm: '', creationYear: '', address: '', zip: '', city: '',
@@ -38,16 +58,22 @@ const ProviderSignupWizard = () => {
         const fetchLegalForms = async () => {
             try {
                 const data = await api.company.getLegalForms();
-                setLegalForms(data.cj || []);
+                const apiForms = data.cj || [];
+
+                // Merge with defaults, ensuring no duplicates based on code
+                setLegalForms(prev => {
+                    const combined = [...prev];
+                    apiForms.forEach(apiForm => {
+                        if (!combined.some(f => f.code === apiForm.code)) {
+                            combined.push(apiForm);
+                        }
+                    });
+                    // Sort alphabetically by libelle
+                    return combined.sort((a, b) => a.libelle.localeCompare(b.libelle));
+                });
             } catch (err) {
                 console.error('Failed to fetch legal forms:', err);
-                // Use fallback values if API fails
-                setLegalForms([
-                    { code: '5710', libelle: 'SAS' },
-                    { code: '5720', libelle: 'SASU' },
-                    { code: '5499', libelle: 'SARL' },
-                    { code: '1000', libelle: 'EI' }
-                ]);
+                // Fallback is already DEFAULT_LEGAL_FORMS from initial state
             }
         };
         fetchLegalForms();

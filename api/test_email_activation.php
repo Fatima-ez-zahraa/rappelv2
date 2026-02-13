@@ -33,12 +33,12 @@ try {
     echo "✓ is_verified column: " . ($has_is_verified ? "EXISTS" : "MISSING") . "\n";
     
     if (!$has_verification_code || !$has_is_verified) {
-        echo "\n⚠️ WARNING: Missing columns. Run the migration:\n";
+        echo "\n WARNING: Missing columns. Run the migration:\n";
         echo "   php alter_user_profiles.php\n";
     }
     
 } catch(PDOException $e) {
-    echo "❌ Database Error: " . $e->getMessage() . "\n";
+    echo " Database Error: " . $e->getMessage() . "\n";
 }
 
 echo "\n=== Email Configuration Test ===\n\n";
@@ -47,9 +47,9 @@ try {
     $mailer = new Mailer();
     echo "✓ Mailer class loaded successfully\n";
     echo "✓ SMTP configuration loaded from .env\n";
-    echo "\nℹ️ To test email sending, create a test account via the signup endpoint.\n";
+    echo "\n To test email sending, create a test account via the signup endpoint.\n";
 } catch(Exception $e) {
-    echo "❌ Mailer Error: " . $e->getMessage() . "\n";
+    echo " Mailer Error: " . $e->getMessage() . "\n";
 }
 
 echo "\n=== API Endpoints ===\n\n";

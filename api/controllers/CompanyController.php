@@ -30,8 +30,15 @@ class CompanyController {
      */
     private function authenticate()
     {
-        $headers = apache_request_headers();
-        $authHeader = $headers['Authorization'] ?? $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+        $headers = function_exists('apache_request_headers') ? apache_request_headers() : [];
+        $authHeader = $headers['Authorization'] ?? 
+                      $headers['authorization'] ?? 
+                      $_SERVER['HTTP_AUTHORIZATION'] ?? 
+                      $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? 
+                      $_SERVER['HTTP_AUTHORISATION'] ?? 
+                      $_SERVER['REDIRECT_HTTP_AUTHORISATION'] ?? 
+                      '';
+        
 
         if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
             $token = $matches[1];
@@ -83,6 +90,54 @@ class CompanyController {
         } else {
             http_response_code(503);
             echo json_encode(["error" => "Erreur lors de la création du devis"]);
+        }
+    }
+
+    public function updateQuote($id)
+    {
+        $auth = $this->authenticate();
+        $data = json_decode(file_get_contents("php://input"));
+
+        if (!$data) {
+            http_response_code(400);
+            echo json_encode(["error" => "Données manquantes"]);
+            return;
+        }
+
+        $this->quote->id = $id;
+        $this->quote->provider_id = $auth['id'];
+
+        if (!$this->quote->readOne()) {
+            http_response_code(404);
+            echo json_encode(["error" => "Devis non trouvé ou non autorisé"]);
+            return;
+        }
+
+        $this->quote->client_name = $data->client_name ?? $this->quote->client_name;
+        $this->quote->project_name = $data->project_name ?? $this->quote->project_name;
+        $this->quote->amount = $data->amount ?? $this->quote->amount;
+        $this->quote->items_count = $data->items_count ?? $this->quote->items_count;
+        $this->quote->status = $data->status ?? $this->quote->status;
+
+        if ($this->quote->update()) {
+            echo json_encode(["message" => "Devis mis à jour"]);
+        } else {
+            http_response_code(503);
+            echo json_encode(["error" => "Erreur lors de la mise à jour du devis"]);
+        }
+    }
+
+    public function deleteQuote($id)
+    {
+        $auth = $this->authenticate();
+        $this->quote->id = $id;
+        $this->quote->provider_id = $auth['id'];
+
+        if ($this->quote->delete()) {
+            echo json_encode(["message" => "Devis supprimé"]);
+        } else {
+            http_response_code(503);
+            echo json_encode(["error" => "Erreur lors de la suppression du devis"]);
         }
     }
 

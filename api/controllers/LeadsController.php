@@ -24,10 +24,16 @@ class LeadsController
     // Middleware simple pour vérifier le token
     private function authenticate()
     {
-        $headers = apache_request_headers();
-        $authHeader = $headers['Authorization'] ?? $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+        $headers = function_exists('apache_request_headers') ? apache_request_headers() : [];
+        $authHeader = $headers['Authorization'] ?? 
+                      $headers['authorization'] ?? 
+                      $_SERVER['HTTP_AUTHORIZATION'] ?? 
+                      $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? 
+                      $_SERVER['HTTP_AUTHORISATION'] ?? 
+                      $_SERVER['REDIRECT_HTTP_AUTHORISATION'] ?? 
+                      '';
 
-        if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+        if (preg_match('/Bearer\\s(\\S+)/', $authHeader, $matches)) {
             $token = $matches[1];
             $payload = $this->jwt->validate($token);
             if ($payload) {
@@ -60,10 +66,13 @@ class LeadsController
         }
     }
 
-    public function create()
+    public function create($returnResult = false)
     {
         $data = json_decode(file_get_contents("php://input"));
-        error_log("Received Lead Data: " . print_r($data, true));
+        // For internal calls (manual creation), data might be passed directly
+        if (!$data && property_exists($this, 'tempData')) {
+            $data = $this->tempData;
+        }
 
         if (!empty($data->name) && !empty($data->phone)) {
             // UUID v4
@@ -85,11 +94,13 @@ class LeadsController
             $this->lead->sector = $data->sector ?? 'Général';
             $this->lead->need = $data->need ?? '';
             $this->lead->time_slot = $data->time_slot ?? 'Non spécifié';
-            $this->lead->budget = $data->budget ?? 0; // Peut être string "100-200" à parser
+            $this->lead->budget = $data->budget ?? 0;
             $this->lead->status = 'pending';
             $this->lead->address = $data->address ?? '';
 
             if ($this->lead->create()) {
+                if ($returnResult) return $this->lead->id;
+
                 http_response_code(201);
                  
                 // Send Email
@@ -104,10 +115,12 @@ class LeadsController
 
                 echo json_encode(["message" => "Lead créé.", "id" => $this->lead->id]);
             } else {
+                if ($returnResult) return false;
                 http_response_code(503);
                 echo json_encode(["error" => "Impossible de créer le lead."]);
             }
         } else {
+            if ($returnResult) return false;
             http_response_code(400);
             echo json_encode(["error" => "Données incomplètes (nom et téléphone requis)."]);
         }
@@ -132,7 +145,24 @@ class LeadsController
     public function createManual()
     {
         $auth = $this->authenticate();
-        $this->create(); // Re-use create but it was called via /manual
+        $leadId = $this->create(true); 
+
+        if ($leadId) {
+            if ($this->lead->createAssignment($leadId, $auth['id'])) {
+                http_response_code(201);
+                echo json_encode(["message" => "Lead manuel créé et assigné.", "id" => $leadId]);
+            } else {
+                http_response_code(500);
+                echo json_encode(["error" => "Lead créé mais échec de l'assignation."]);
+            }
+        } else {
+            // Error response already handled by create(true) if it had echoed, 
+            // but we need to ensure some response if it returned false.
+            if (http_response_code() == 200) { // Default
+                http_response_code(400);
+                echo json_encode(["error" => "Échec de la création du lead manuel."]);
+            }
+        }
     }
 
     public function update($id)
@@ -150,7 +180,7 @@ class LeadsController
         $values = [];
         foreach ($data as $key => $value) {
             // Filter allowed keys for security
-            if (in_array($key, ['name', 'email', 'phone', 'address', 'sector', 'need', 'budget', 'status'])) {
+            if (in_array($key, ['name', 'email', 'phone', 'address', 'sector', 'need', 'budget', 'status', 'time_slot'])) {
                 $fields[] = "$key = ?";
                 $values[] = $value;
             }

@@ -147,6 +147,25 @@ export const api = {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             return data;
+        },
+        update: async (id, quoteData) => {
+            const res = await fetch(`${API_URL}/quotes/${id}`, {
+                method: 'PATCH',
+                headers: getHeaders(),
+                body: JSON.stringify(quoteData)
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            return data;
+        },
+        delete: async (id) => {
+            const res = await fetch(`${API_URL}/quotes/${id}`, {
+                method: 'DELETE',
+                headers: getHeaders()
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            return data;
         }
     },
     stats: {

@@ -20,7 +20,7 @@ const Header = () => {
     }, []);
 
     const navLinks = [
-        { label: 'Comment ça marche', href: '#how-it-works' },
+        { label: 'Comment ça marche', path: '/comment-ca-marche' },
         { label: 'Chercher un prestataire', href: '#demande' },
         { label: 'Mentions légales', href: '#legal' },
     ];
@@ -41,13 +41,23 @@ const Header = () => {
                 {/* Desktop Nav */}
                 <nav className="hidden lg:flex items-center gap-10">
                     {navLinks.map((link) => (
-                        <a
-                            key={link.label}
-                            href={link.href}
-                            className="text-sm font-semibold text-navy-600 hover:text-accent-600 transition-colors"
-                        >
-                            {link.label}
-                        </a>
+                        link.path ? (
+                            <button
+                                key={link.label}
+                                onClick={() => navigate(link.path)}
+                                className="text-sm font-semibold text-navy-600 hover:text-accent-600 transition-colors"
+                            >
+                                {link.label}
+                            </button>
+                        ) : (
+                            <a
+                                key={link.label}
+                                href={link.href}
+                                className="text-sm font-semibold text-navy-600 hover:text-accent-600 transition-colors"
+                            >
+                                {link.label}
+                            </a>
+                        )
                     ))}
                 </nav>
 
@@ -87,14 +97,27 @@ const Header = () => {
                         className="absolute top-full left-0 w-full bg-white/95 backdrop-blur-2xl border-b border-navy-100 p-8 shadow-xl lg:hidden flex flex-col gap-6"
                     >
                         {navLinks.map((link) => (
-                            <a
-                                key={link.label}
-                                href={link.href}
-                                className="text-xl font-bold text-navy-950"
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                {link.label}
-                            </a>
+                            link.path ? (
+                                <button
+                                    key={link.label}
+                                    onClick={() => {
+                                        navigate(link.path);
+                                        setMobileMenuOpen(false);
+                                    }}
+                                    className="text-xl font-bold text-navy-950 text-left"
+                                >
+                                    {link.label}
+                                </button>
+                            ) : (
+                                <a
+                                    key={link.label}
+                                    href={link.href}
+                                    className="text-xl font-bold text-navy-950"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    {link.label}
+                                </a>
+                            )
                         ))}
                         <div className="flex flex-col gap-4 pt-6 border-t border-navy-50">
                             <Button

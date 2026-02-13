@@ -4,7 +4,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useAuth } from '../context/useAuth';
 import { api } from '../lib/api';
-import { User, Building2, Shield, CreditCard, Loader2 } from 'lucide-react';
+import { User, Building2, Shield, CreditCard, Loader2, CheckCircle } from 'lucide-react';
 
 const SettingsPage = () => {
     const { user: authUser, refreshUser } = useAuth();
@@ -17,7 +17,7 @@ const SettingsPage = () => {
         const fetchProfile = async () => {
             try {
                 const data = await api.auth.getProfile();
-                setProfile(data);
+                setProfile(data.user || data);
             } catch (error) {
                 console.error('Error fetching profile:', error);
             } finally {

@@ -12,7 +12,9 @@ import {
     Briefcase,
     Search,
     ArrowUpRight,
-    Loader2
+    Loader2,
+    Zap,
+    FileText
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useNavigate } from 'react-router-dom';

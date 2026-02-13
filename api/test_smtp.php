@@ -13,7 +13,7 @@ $result = $mailer->sendActivationEmail($testEmail, $testName, $testCode);
 if ($result) {
     echo "✓ Email sent successfully!\n";
 } else {
-    echo "❌ Email sending failed. Check api/logs/php_error.log or your error log.\n";
+    echo " Email sending failed. Check api/logs/php_error.log or your error log.\n";
     // Check if we can capture more info from PHPMailer (I'll add a temporary debug echo in Mailer if needed)
 }
 ?>

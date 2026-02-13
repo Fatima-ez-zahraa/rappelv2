@@ -98,5 +98,35 @@ class Lead
         $stmt->execute();
         return $stmt;
     }
+
+    // Créer une assignment (lier un lead à un prestataire)
+    public function createAssignment($lead_id, $provider_id)
+    {
+        $query = "INSERT INTO lead_assignments (id, lead_id, provider_id) VALUES (:id, :lead_id, :provider_id)";
+        $stmt = $this->conn->prepare($query);
+
+        // Generate UUID for assignment
+        $assignment_id = sprintf(
+            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0x0fff) | 0x4000,
+            mt_rand(0, 0x3fff) | 0x8000,
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff)
+        );
+
+        $stmt->bindParam(':id', $assignment_id);
+        $stmt->bindParam(':lead_id', $lead_id);
+        $stmt->bindParam(':provider_id', $provider_id);
+
+        if ($stmt->execute()) {
+            return true;
+        }
+        error_log("Lead Assignment Create Failed: " . print_r($stmt->errorInfo(), true));
+        return false;
+    }
 }
 ?>

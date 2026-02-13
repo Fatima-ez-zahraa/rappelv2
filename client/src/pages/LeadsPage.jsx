@@ -570,12 +570,13 @@ const LeadsPage = () => {
                                                 disabled={saving}
                                             >
                                                 {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                                                Sauvegarder
+                                                Enregistrer les modifications
                                             </Button>
                                             <Button
                                                 variant="outline"
                                                 className="w-full"
                                                 onClick={cancelEditing}
+                                                disabled={saving}
                                             >
                                                 Annuler
                                             </Button>
@@ -584,7 +585,7 @@ const LeadsPage = () => {
                                         <>
                                             <Button
                                                 onClick={() => handleCall(selectedLead)}
-                                                className="w-full bg-accent-500 hover:bg-accent-600 text-white py-6 shadow-glow font-bold"
+                                                className="w-full bg-accent-500 hover:bg-accent-600 text-white py-6 shadow-premium font-bold"
                                             >
                                                 <Phone className="mr-2 h-5 w-5" /> Appeler maintenant
                                             </Button>

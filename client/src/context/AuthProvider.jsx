@@ -38,9 +38,10 @@ export const AuthProvider = ({ children }) => {
     const refreshUser = async () => {
         try {
             const data = await api.auth.getProfile();
-            setUser(data);
-            localStorage.setItem('rappel_user', JSON.stringify(data));
-            return data;
+            const userData = data.user || data;
+            setUser(userData);
+            localStorage.setItem('rappel_user', JSON.stringify(userData));
+            return userData;
         } catch (error) {
             console.error('Refresh user error:', error);
             throw error;

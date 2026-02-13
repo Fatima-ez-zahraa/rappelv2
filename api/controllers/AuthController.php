@@ -99,8 +99,8 @@ class AuthController
                         "user" => [
                             "id" => $this->user->id,
                             "email" => $this->user->email,
-                            "firstName" => $this->user->first_name,
-                            "lastName" => $this->user->last_name,
+                            "first_name" => $this->user->first_name,
+                            "last_name" => $this->user->last_name,
                             "role" => $this->user->role
                         ],
                         "session" => [
@@ -162,8 +162,8 @@ class AuthController
                     "user" => [
                         "id" => $this->user->id,
                         "email" => $this->user->email,
-                        "firstName" => $this->user->first_name,
-                        "lastName" => $this->user->last_name,
+                        "first_name" => $this->user->first_name,
+                        "last_name" => $this->user->last_name,
                         "role" => $this->user->role,
                         "is_verified" => (bool)$this->user->is_verified
                     ],
@@ -217,8 +217,8 @@ class AuthController
                         "user" => [
                             "id" => $this->user->id,
                             "email" => $this->user->email,
-                            "firstName" => $this->user->first_name,
-                            "lastName" => $this->user->last_name,
+                            "first_name" => $this->user->first_name,
+                            "last_name" => $this->user->last_name,
                             "role" => $this->user->role,
                             "is_verified" => true
                         ],
@@ -295,34 +295,88 @@ class AuthController
 
     public function getProfile()
     {
-        $headers = apache_request_headers();
-        $authHeader = $headers['Authorization'] ?? $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+        $headers = function_exists('apache_request_headers') ? apache_request_headers() : [];
+        $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? $_SERVER['HTTP_AUTHORISATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORISATION'] ?? '';
 
         if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
             $token = $matches[1];
             $payload = $this->jwt->validate($token);
             if ($payload) {
+                $payload = (array)$payload;
                 $this->user->id = $payload['id'];
                 if ($this->user->readOne()) {
                     http_response_code(200);
                     echo json_encode([
-                        "id" => $this->user->id,
-                        "email" => $this->user->email,
-                        "firstName" => $this->user->first_name,
-                        "lastName" => $this->user->last_name,
-                        "role" => $this->user->role,
-                        "companyName" => $this->user->company_name,
-                        "siret" => $this->user->siret,
-                        "is_verified" => (bool)$this->user->is_verified,
-                        "phone" => $this->user->phone,
-                        "address" => $this->user->address,
-                        "city" => $this->user->city,
-                        "zip" => $this->user->zip,
-                        "creationYear" => $this->user->creation_year,
-                        "legalForm" => $this->user->legal_form
+                        "user" => [
+                            "id" => $this->user->id,
+                            "email" => $this->user->email,
+                            "first_name" => $this->user->first_name,
+                            "last_name" => $this->user->last_name,
+                            "role" => $this->user->role,
+                            "company_name" => $this->user->company_name,
+                            "siret" => $this->user->siret,
+                            "is_verified" => (bool)$this->user->is_verified,
+                            "phone" => $this->user->phone,
+                            "address" => $this->user->address,
+                            "city" => $this->user->city,
+                            "zip" => $this->user->zip,
+                            "creation_year" => $this->user->creation_year,
+                            "legal_form" => $this->user->legal_form
+                        ]
                     ]);
                     return;
                 }
+            }
+        }
+
+        http_response_code(401);
+        echo json_encode(["error" => "Non autorisé"]);
+    }
+
+    public function updateProfile()
+    {
+        $headers = function_exists('apache_request_headers') ? apache_request_headers() : [];
+        $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? $_SERVER['HTTP_AUTHORISATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORISATION'] ?? '';
+
+        if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+            $token = $matches[1];
+            $payload = $this->jwt->validate($token);
+            if ($payload) {
+                $payload = (array)$payload;
+                $this->user->id = $payload['id'];
+                $data = json_decode(file_get_contents("php://input"), true);
+                
+                if ($this->user->update($data)) {
+                    if ($this->user->readOne()) {
+                        http_response_code(200);
+                        echo json_encode([
+                            "message" => "Profil mis à jour.",
+                            "user" => [
+                                "id" => $this->user->id,
+                                "email" => $this->user->email,
+                                "first_name" => $this->user->first_name,
+                                "last_name" => $this->user->last_name,
+                                "role" => $this->user->role,
+                                "company_name" => $this->user->company_name,
+                                "siret" => $this->user->siret,
+                                "is_verified" => (bool)$this->user->is_verified,
+                                "phone" => $this->user->phone,
+                                "address" => $this->user->address,
+                                "city" => $this->user->city,
+                                "zip" => $this->user->zip,
+                                "creation_year" => $this->user->creation_year,
+                                "legal_form" => $this->user->legal_form
+                            ]
+                        ]);
+                    } else {
+                        http_response_code(200);
+                        echo json_encode(["message" => "Profil mis à jour."]);
+                    }
+                } else {
+                    http_response_code(503);
+                    echo json_encode(["error" => "Erreur lors de la mise à jour."]);
+                }
+                return;
             }
         }
 

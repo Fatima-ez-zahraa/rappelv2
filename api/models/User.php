@@ -171,5 +171,34 @@ class User
 
         return false;
     }
+
+    // Mettre à jour les infos d'un utilisateur
+    public function update($data)
+    {
+        if (empty($data)) return true;
+
+        $fields = [];
+        $values = [];
+        $allowedFields = [
+            'first_name', 'last_name', 'company_name', 'siret', 'legal_form', 
+            'creation_year', 'address', 'zip', 'city', 'phone', 'sectors', 'description', 'zone'
+        ];
+
+        foreach ($data as $key => $value) {
+            if (in_array($key, $allowedFields)) {
+                $fields[] = "$key = :$key";
+                $values[":$key"] = $value;
+            }
+        }
+
+        if (empty($fields)) return true;
+
+        $query = "UPDATE " . $this->table_name . " SET " . implode(", ", $fields) . " WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        
+        $values[':id'] = $this->id;
+
+        return $stmt->execute($values);
+    }
 }
 ?>

@@ -20,6 +20,7 @@ import BuyLeadsPage from './pages/BuyLeadsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import ProviderLoginPage from './pages/ProviderLoginPage';
 import BackgroundBlobs from './components/layout/BackgroundBlobs';
+import HowItWorksPage from './pages/HowItWorksPage';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
         <BackgroundBlobs />
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/comment-ca-marche" element={<HowItWorksPage />} />
           <Route path="/pro" element={<ProviderLandingPage />} />
           <Route path="/pro/login" element={<ProviderLoginPage />} />
           <Route path="/pro/signup" element={<ProviderSignupWizard />} />

@@ -12,9 +12,6 @@ $body = json_encode([
     'code' => '731859'
 ]);
 
-// We can't easily mock php://input for the real index.php without using something like curl
-// So let's use CURL to call the LOCAL server if it's running.
-// If not, we can try to include index.php but we need to mock file_get_contents("php://input")
 
 echo "Starting test...\n";
 

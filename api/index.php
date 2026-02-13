@@ -87,14 +87,24 @@ try {
 
         case 'profile':
             $auth = new AuthController();
-            $auth->getProfile();
+            if ($_SERVER['REQUEST_METHOD'] == 'PATCH') {
+                $auth->updateProfile();
+            } else {
+                $auth->getProfile();
+            }
             break;
 
         case 'leads':
             $leads = new LeadsController();
+            // Map $action to $id if it looks like a UUID or if it's not a known action
+            $leadId = $id;
+            if (empty($leadId) && !empty($action) && $action !== 'manual') {
+                $leadId = $action;
+            }
+
             if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-                if ($id) {
-                    $leads->get($id);
+                if ($leadId) {
+                    $leads->get($leadId);
                 } else {
                     $leads->getAll();
                 }
@@ -104,11 +114,11 @@ try {
                 } else {
                     $leads->create();
                 }
-            } elseif ($_SERVER['REQUEST_METHOD'] == 'PATCH' && $id) {
-                $leads->update($id);
+            } elseif ($_SERVER['REQUEST_METHOD'] == 'PATCH' && $leadId) {
+                $leads->update($leadId);
             } else {
                 http_response_code(404);
-                echo json_encode(['error' => 'Endpoint not found (leads)']);
+                echo json_encode(['error' => 'Endpoint not found (leads)', 'path' => $path, 'method' => $_SERVER['REQUEST_METHOD']]);
             }
             break;
 
@@ -118,6 +128,10 @@ try {
                 $company->getQuotes();
             } elseif ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $company->createQuote();
+            } elseif ($_SERVER['REQUEST_METHOD'] == 'PATCH' && !empty($action)) {
+                $company->updateQuote($action);
+            } elseif ($_SERVER['REQUEST_METHOD'] == 'DELETE' && !empty($action)) {
+                $company->deleteQuote($action);
             } else {
                 http_response_code(404);
                 echo json_encode(['error' => 'Endpoint not found']);

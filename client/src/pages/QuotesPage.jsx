@@ -46,8 +46,11 @@ const QuotesPage = () => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('all');
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [newQuote, setNewQuote] = useState({ clientName: '', projectName: '', amount: '', itemsCount: 1 });
+    const [modalMode, setModalMode] = useState('create'); // 'create' | 'edit' | 'view'
+    const [newQuote, setNewQuote] = useState({ client_name: '', project_name: '', amount: '', items_count: 1, status: 'attente_client' });
+    const [editingQuoteId, setEditingQuoteId] = useState(null);
     const [showActionsMenu, setShowActionsMenu] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         fetchQuotes();
@@ -65,26 +68,79 @@ const QuotesPage = () => {
         }
     };
 
-    const handleCreateQuote = async (e) => {
-        e.preventDefault();
+    const openCreateModal = () => {
+        setModalMode('create');
+        setNewQuote({ client_name: '', project_name: '', amount: '', items_count: 1, status: 'attente_client' });
+        setEditingQuoteId(null);
+        setShowCreateModal(true);
+    };
+
+    const openEditModal = (quote) => {
+        setModalMode('edit');
+        setNewQuote({
+            client_name: quote.client_name,
+            project_name: quote.project_name,
+            amount: quote.amount,
+            items_count: quote.items_count,
+            status: quote.status
+        });
+        setEditingQuoteId(quote.id);
+        setShowCreateModal(true);
+        setShowActionsMenu(null);
+    };
+
+    const openViewModal = (quote) => {
+        setModalMode('view');
+        setNewQuote({
+            client_name: quote.client_name,
+            project_name: quote.project_name,
+            amount: quote.amount,
+            items_count: quote.items_count,
+            status: quote.status
+        });
+        setEditingQuoteId(quote.id);
+        setShowCreateModal(true);
+        setShowActionsMenu(null);
+    };
+
+    const handleDeleteQuote = async (id) => {
+        if (!confirm("Êtes-vous sûr de vouloir supprimer ce devis ?")) return;
         try {
-            await api.quotes.create(newQuote);
-            setShowCreateModal(false);
-            setNewQuote({ clientName: '', projectName: '', amount: '', itemsCount: 1 });
+            await api.quotes.delete(id);
             fetchQuotes();
+            setShowActionsMenu(null);
         } catch (error) {
-            alert("Erreur lors de la création du devis.");
+            alert("Erreur lors de la suppression du devis.");
         }
     };
 
-    const filteredQuotes = activeTab === 'all'
+    const handleCreateQuote = async (e) => {
+        e.preventDefault();
+        try {
+            if (modalMode === 'edit') {
+                await api.quotes.update(editingQuoteId, newQuote);
+            } else {
+                await api.quotes.create(newQuote);
+            }
+            setShowCreateModal(false);
+            setNewQuote({ client_name: '', project_name: '', amount: '', items_count: 1, status: 'attente_client' });
+            fetchQuotes();
+        } catch (error) {
+            alert(`Erreur lors de la ${modalMode === 'edit' ? 'mise à jour' : 'création'} du devis.`);
+        }
+    };
+
+    const filteredQuotes = (activeTab === 'all'
         ? quotes
         : quotes.filter(q => {
             if (activeTab === 'signe') return q.status === 'signe';
             if (activeTab === 'pending') return ['attente_client', 'traitement', 'modification'].includes(q.status);
             if (activeTab === 'lost') return q.status === 'refuse';
             return true;
-        });
+        })).filter(q =>
+            q.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            q.project_name?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
 
     const stats = {
         totalEnCours: quotes.filter(q => q.status !== 'signe' && q.status !== 'refuse').reduce((sum, q) => sum + parseFloat(q.amount), 0),
@@ -100,7 +156,7 @@ const QuotesPage = () => {
                     <h1 className="text-3xl font-bold text-navy-950 tracking-tight">Mes Devis</h1>
                     <p className="text-navy-800 font-bold mt-1">Suivez et gérez vos propositions commerciales</p>
                 </div>
-                <Button onClick={() => setShowCreateModal(true)} className="bg-navy-950 text-white hover:bg-navy-900 shadow-premium font-bold">
+                <Button onClick={openCreateModal} className="bg-navy-950 text-white hover:bg-navy-900 shadow-premium font-bold">
                     <Plus className="mr-2 h-4 w-4" /> Créer un devis
                 </Button>
             </div>
@@ -165,12 +221,8 @@ const QuotesPage = () => {
                             type="text"
                             placeholder="Rechercher un devis..."
                             className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 font-medium"
-                            onChange={(e) => {
-                                // Basic search functionality - filter by client name or project name
-                                const searchTerm = e.target.value.toLowerCase();
-                                // This would need state management to be fully functional
-                                console.log('Search term:', searchTerm);
-                            }}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
                 </div>
@@ -218,33 +270,22 @@ const QuotesPage = () => {
                                         {showActionsMenu === quote.id && (
                                             <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-10">
                                                 <button
-                                                    onClick={() => {
-                                                        alert(`Voir les détails du devis pour ${quote.client_name}`);
-                                                        setShowActionsMenu(null);
-                                                    }}
+                                                    onClick={() => openViewModal(quote)}
                                                     className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 flex items-center gap-2"
                                                 >
-                                                    👁️ Voir détails
+                                                    Voir détails
                                                 </button>
                                                 <button
-                                                    onClick={() => {
-                                                        alert(`Modifier le devis pour ${quote.client_name} - Fonctionnalité en développement`);
-                                                        setShowActionsMenu(null);
-                                                    }}
+                                                    onClick={() => openEditModal(quote)}
                                                     className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 flex items-center gap-2"
                                                 >
-                                                    ✏️ Modifier
+                                                    Modifier
                                                 </button>
                                                 <button
-                                                    onClick={() => {
-                                                        if (confirm(`Êtes-vous sûr de vouloir supprimer le devis de ${quote.client_name} ?`)) {
-                                                            alert('Suppression en développement - Contactez le support');
-                                                        }
-                                                        setShowActionsMenu(null);
-                                                    }}
+                                                    onClick={() => handleDeleteQuote(quote.id)}
                                                     className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
                                                 >
-                                                    🗑️ Supprimer
+                                                    Supprimer
                                                 </button>
                                             </div>
                                         )}
@@ -282,7 +323,9 @@ const QuotesPage = () => {
                             className="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative z-10 overflow-hidden"
                         >
                             <div className="p-6 border-b flex justify-between items-center bg-slate-50">
-                                <h2 className="text-xl font-bold text-navy-900">Nouveau Devis</h2>
+                                <h2 className="text-xl font-bold text-navy-900">
+                                    {modalMode === 'create' ? 'Nouveau Devis' : modalMode === 'edit' ? 'Modifier le Devis' : 'Détails du Devis'}
+                                </h2>
                                 <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-navy-900">
                                     <X size={20} />
                                 </button>
@@ -292,15 +335,17 @@ const QuotesPage = () => {
                                     label="Nom du Client"
                                     placeholder="Mme Durand"
                                     required
-                                    value={newQuote.clientName}
-                                    onChange={e => setNewQuote({ ...newQuote, clientName: e.target.value })}
+                                    disabled={modalMode === 'view'}
+                                    value={newQuote.client_name}
+                                    onChange={e => setNewQuote({ ...newQuote, client_name: e.target.value })}
                                 />
                                 <Input
                                     label="Nom du Projet"
                                     placeholder="Rénovation Toiture"
                                     required
-                                    value={newQuote.projectName}
-                                    onChange={e => setNewQuote({ ...newQuote, projectName: e.target.value })}
+                                    disabled={modalMode === 'view'}
+                                    value={newQuote.project_name}
+                                    onChange={e => setNewQuote({ ...newQuote, project_name: e.target.value })}
                                 />
                                 <div className="grid grid-cols-2 gap-4">
                                     <Input
@@ -308,6 +353,7 @@ const QuotesPage = () => {
                                         type="number"
                                         placeholder="1200"
                                         required
+                                        disabled={modalMode === 'view'}
                                         value={newQuote.amount}
                                         onChange={e => setNewQuote({ ...newQuote, amount: e.target.value })}
                                     />
@@ -315,17 +361,39 @@ const QuotesPage = () => {
                                         label="Nombre de prestations"
                                         type="number"
                                         placeholder="1"
-                                        value={newQuote.itemsCount}
-                                        onChange={e => setNewQuote({ ...newQuote, itemsCount: e.target.value })}
+                                        disabled={modalMode === 'view'}
+                                        value={newQuote.items_count}
+                                        onChange={e => setNewQuote({ ...newQuote, items_count: e.target.value })}
                                     />
                                 </div>
+
+                                {modalMode !== 'create' && (
+                                    <div>
+                                        <label className="block text-sm font-bold text-navy-900 mb-2">Statut</label>
+                                        <select
+                                            disabled={modalMode === 'view'}
+                                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium disabled:opacity-70"
+                                            value={newQuote.status}
+                                            onChange={e => setNewQuote({ ...newQuote, status: e.target.value })}
+                                        >
+                                            <option value="attente_client">Attente retour</option>
+                                            <option value="traitement">En traitement</option>
+                                            <option value="modification">Modification</option>
+                                            <option value="signe">Signé</option>
+                                            <option value="refuse">Refusé</option>
+                                        </select>
+                                    </div>
+                                )}
+
                                 <div className="pt-4 flex gap-3">
                                     <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)} className="flex-1">
-                                        Annuler
+                                        {modalMode === 'view' ? 'Fermer' : 'Annuler'}
                                     </Button>
-                                    <Button type="submit" className="flex-1 bg-navy-950 text-white font-bold hover:bg-navy-900">
-                                        Créer le devis
-                                    </Button>
+                                    {modalMode !== 'view' && (
+                                        <Button type="submit" className="flex-1 bg-navy-950 text-white font-bold hover:bg-navy-900">
+                                            {modalMode === 'create' ? 'Créer le devis' : 'Enregistrer'}
+                                        </Button>
+                                    )}
                                 </div>
                             </form>
                         </motion.div>
